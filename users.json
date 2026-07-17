@@ -1,0 +1,26 @@
+﻿{
+    "muhammadajaz7786@gmail.com":  {
+                                       "id":  "usr_833e0c11",
+                                       "trialStart":  1784320988152,
+                                       "trialEnd":  1785184988152,
+                                       "email":  "muhammadajaz7786@gmail.com",
+                                       "status":  "premium",
+                                       "paymentDate":  1784321059994
+                                   },
+    "test-verification-847aecd2@example.com":  {
+                                                   "id":  "usr_4245dfd9",
+                                                   "trialStart":  1784320656162,
+                                                   "trialEnd":  1785184656162,
+                                                   "email":  "test-verification-847aecd2@example.com",
+                                                   "status":  "premium",
+                                                   "paymentDate":  1784320656325
+                                               },
+    "csestudent@gmail.com":  {
+                                 "id":  "usr_71a45b23",
+                                 "trialStart":  1784321111076,
+                                 "trialEnd":  1785185111076,
+                                 "email":  "csestudent@gmail.com",
+                                 "status":  "trial",
+                                 "paymentDate":  null
+                             }
+}

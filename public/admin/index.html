@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Refresh SaaS - Admin Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <!-- Load Chart.js for premium analytics visuals -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+
+  <!-- ADMIN LOGIN PANEL (Frosted modal shown before access) -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg viewBox="0 0 128 128" width="50" height="50">
+          <circle cx="64" cy="64" r="54" fill="none" stroke="#00f2fe" stroke-width="8"/>
+          <path d="M 64,20 A 44,44 0 1,1 32,54" fill="none" stroke="#4facfe" stroke-width="8" stroke-linecap="round"/>
+          <polygon points="32,32 50,54 22,58" fill="#00f2fe"/>
+        </svg>
+        <h2>SaaS Admin Console</h2>
+        <p>Access requires JWT administrator authentication credentials.</p>
+      </div>
+      <div class="form-group">
+        <label for="admin-password">Console Secret Key:</label>
+        <input type="password" id="admin-password" placeholder="••••••••••••" required>
+      </div>
+      <div id="login-error" class="login-error hidden">Invalid administration password.</div>
+      <button id="login-btn" class="btn btn-primary">Authenticate Console</button>
+    </div>
+  </div>
+
+  <!-- CONSOLE APP WRAPPER -->
+  <div id="app-wrapper" class="app-wrapper hidden">
+    <!-- TOP NAVIGATION -->
+    <header class="app-header">
+      <div class="brand">
+        <svg viewBox="0 0 128 128" width="36" height="36">
+          <circle cx="64" cy="64" r="54" fill="none" stroke="#00f2fe" stroke-width="8"/>
+          <path d="M 64,20 A 44,44 0 1,1 32,54" fill="none" stroke="#4facfe" stroke-width="8" stroke-linecap="round"/>
+          <polygon points="32,32 50,54 22,58" fill="#00f2fe"/>
+        </svg>
+        <div>
+          <h1>Auto Refresh SaaS</h1>
+          <span>Operations Admin Console</span>
+        </div>
+      </div>
+      <div class="user-profile">
+        <span class="user-badge">Administrator</span>
+        <button id="logout-btn" class="btn btn-logout">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY GRID -->
+    <main class="console-body">
+      <!-- STATS BANNER COUNTERS -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-title">Total Registered Users</span>
+          <h3 id="stat-total-users" class="metric-val">0</h3>
+          <p class="metric-footer">Lifetime registrations</p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Premium Subscriptions</span>
+          <h3 id="stat-premium-users" class="metric-val">0</h3>
+          <p id="stat-conversion-rate" class="metric-footer">0% Conversion</p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Active Free Trials</span>
+          <h3 id="stat-active-trials" class="metric-val">0</h3>
+          <p class="metric-footer">Trial window active</p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Expired Free Trials</span>
+          <h3 id="stat-expired-trials" class="metric-val">0</h3>
+          <p class="metric-footer">Retention potential</p>
+        </div>
+      </section>
+
+      <!-- PERIOD METRICS BOX -->
+      <section class="period-metrics-grid">
+        <div class="period-card">
+          <span>Today's Registrations</span>
+          <h4 id="stat-today-users">0</h4>
+        </div>
+        <div class="period-card">
+          <span>Last 7 Days</span>
+          <h4 id="stat-7days-users">0</h4>
+        </div>
+        <div class="period-card">
+          <span>Last 30 Days</span>
+          <h4 id="stat-30days-users">0</h4>
+        </div>
+        <div class="period-card">
+          <span>Premium Tier Splits</span>
+          <div class="split-info">
+            <span>M: <strong id="stat-split-monthly">0</strong></span>
+            <span>Y: <strong id="stat-split-yearly">0</strong></span>
+            <span>L: <strong id="stat-split-lifetime">0</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ANALYTICS CHARTS GRID -->
+      <section class="charts-grid">
+        <div class="chart-card">
+          <h3>Daily Install Registrations</h3>
+          <div class="chart-container">
+            <canvas id="installsChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Top User Geographies</h3>
+          <div class="chart-container">
+            <canvas id="countriesChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- USER BASE DATABASE TABLE -->
+      <section class="table-section">
+        <div class="table-header">
+          <h2>Registered Client Profiles</h2>
+          <div class="table-actions">
+            <input type="text" id="user-search" placeholder="Search Client UUID / Country...">
+            
+            <select id="filter-plan">
+              <option value="all">All Plans</option>
+              <option value="free">Free Trial</option>
+              <option value="monthly">Premium Monthly</option>
+              <option value="yearly">Premium Yearly</option>
+              <option value="lifetime">Premium Lifetime</option>
+            </select>
+
+            <select id="filter-premium">
+              <option value="all">All Access Modes</option>
+              <option value="true">Premium Only</option>
+              <option value="false">Standard Only</option>
+            </select>
+
+            <button id="export-csv" class="btn btn-secondary">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-field="uid">User / Client ID</th>
+                <th class="sortable" data-field="installDate">Install Date</th>
+                <th class="sortable" data-field="remainingDays">Remaining Trial</th>
+                <th>Country</th>
+                <th>Specs</th>
+                <th class="sortable" data-field="plan">Billing Plan</th>
+                <th class="sortable" data-field="premiumStatus">Premium</th>
+                <th class="sortable" data-field="lastSeen">Last Active</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr>
+                <td colspan="8" class="empty-state">No client profiles match your filtering constraints.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- GLOBAL SYSTEM AND SETTINGS MANAGEMENT -->
+      <section class="settings-section">
+        <h2>Global Configuration Console</h2>
+        <p class="section-subtitle">Real-time parameters loaded by client extensions without code modifications.</p>
+
+        <form id="settings-form" class="settings-form-grid">
+          <!-- Prices Card -->
+          <div class="glass-card">
+            <h3>Billing Presets ($ USD)</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="set-monthly-price">Monthly Price:</label>
+                <input type="number" id="set-monthly-price" step="0.01" required>
+              </div>
+              <div class="form-group">
+                <label for="set-yearly-price">Yearly Price:</label>
+                <input type="number" id="set-yearly-price" step="0.01" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="set-lifetime-price">Lifetime Price (One-time):</label>
+              <input type="number" id="set-lifetime-price" step="0.01" required>
+            </div>
+          </div>
+
+          <!-- Operation Parameters Card -->
+          <div class="glass-card">
+            <h3>Trial & Distribution Bounds</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="set-trial-days">Trial Window (Days):</label>
+                <input type="number" id="set-trial-days" required>
+              </div>
+              <div class="form-group">
+                <label for="set-extension-version">Extension Min Version:</label>
+                <input type="text" id="set-extension-version" placeholder="1.0.0" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="toggle-control">
+                <input type="checkbox" id="set-premium-features">
+                <span class="control-indicator"></span>
+                <div>
+                  <span class="control-title">Enable Premium Tier Locks</span>
+                  <p class="control-desc">When disabled, all Premium restrictions are unlocked globally.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Alert banner and maintenance parameters -->
+          <div class="glass-card full-width">
+            <h3>Notifications & System Maintenance</h3>
+            <div class="form-group">
+              <label for="set-announcements">Broadcast System Announcement:</label>
+              <textarea id="set-announcements" rows="2" placeholder="Announcements to highlight inside popups..."></textarea>
+            </div>
+            <div class="form-group-toggle-container">
+              <label class="toggle-control">
+                <input type="checkbox" id="set-maintenance-mode">
+                <span class="control-indicator"></span>
+                <div>
+                  <span class="control-title">Server Maintenance Mode</span>
+                  <p class="control-desc">Lock all dynamic refreshing actions and show maintenance screen in extensions.</p>
+                </div>
+              </label>
+            </div>
+            <div style="text-align: right; margin-top: 15px;">
+              <button type="submit" class="btn btn-primary">Apply Settings Config</button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- Dynamic Notification Banners -->
+  <div id="toast" class="toast hidden">Settings updated successfully!</div>
+
+</body>
+</html>
