@@ -13,7 +13,7 @@ if (isStripeConfigured) {
 }
 
 // Payment Service: Generates checkout sessions (real or simulated)
-async function createCheckoutSession(uid, planId, successUrl, cancelUrl) {
+async function createCheckoutSession(uid, planId, successUrl, cancelUrl, requestHost) {
   // 1. Fetch live pricing configuration
   const docSnap = await db.collection("settings").doc("global").get();
   const prices = docSnap.exists 
@@ -69,7 +69,7 @@ async function createCheckoutSession(uid, planId, successUrl, cancelUrl) {
 
   // 3. Fallback Mock Simulator Workflow (If Stripe environment keys are absent)
   const mockSessionId = `mock_session_${Math.random().toString(36).substring(2, 15)}`;
-  const backendBaseUrl = process.env.BACKEND_URL || "http://localhost:5000";
+  const backendBaseUrl = process.env.BACKEND_URL || requestHost || "http://localhost:5000";
   
   // Custom mock simulator page hosted on backend
   const checkoutUrl = `${backendBaseUrl}/api/payments/mock-checkout?session_id=${mockSessionId}&uid=${uid}&plan=${planId}&price=${priceValue}&successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`;

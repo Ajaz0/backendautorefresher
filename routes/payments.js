@@ -21,7 +21,8 @@ router.post("/checkout-session", verifyUserToken, async (req, res) => {
   }
 
   try {
-    const session = await createCheckoutSession(uid, planId, successUrl, cancelUrl);
+    const requestHost = `${req.protocol}://${req.get("host")}`;
+    const session = await createCheckoutSession(uid, planId, successUrl, cancelUrl, requestHost);
     return res.status(200).json(session);
   } catch (error) {
     console.error("Failed to start payment checkout session:", error);
