@@ -8,7 +8,7 @@ let countriesChart = null;
 let currentSortField = "installDate";
 let currentSortOrder = "desc";
 
-document.addEventListener("DOMContentLoaded", () => {
+function initAdminConsole() {
   if (adminToken) {
     showDashboard();
   } else {
@@ -49,7 +49,13 @@ document.addEventListener("DOMContentLoaded", () => {
       renderUsersTable();
     });
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initAdminConsole);
+} else {
+  initAdminConsole();
+}
 
 function showLogin() {
   document.getElementById("login-overlay").classList.remove("hidden");
