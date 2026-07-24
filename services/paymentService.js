@@ -1,24 +1,35 @@
 const { db } = require("../config/firebase");
 
-let stripe = null;
-const isStripeConfigured = !!process.env.STRIPE_SECRET_KEY;
+let stripeInstance = null;
 
-if (isStripeConfigured) {
-  try {
-    // Stripe SDK loaded dynamically if configuration keys are present
-    stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-  } catch (e) {
-    console.warn("Stripe package import error. Continuing in simulator mode.");
+function getStripe() {
+  if (!stripeInstance && process.env.STRIPE_SECRET_KEY) {
+    try {
+      stripeInstance = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    } catch (e) {
+      console.warn("Stripe package import error:", e.message);
+    }
   }
+  return stripeInstance;
 }
 
-// Payment Service: Generates checkout sessions (real or simulated)
+function isStripeConfigured() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  return !!(key && key.trim().startsWith("sk_"));
+}
+
+// Payment Service: Generates checkout sessions (real Stripe Live/Test or simulated mock)
 async function createCheckoutSession(uid, planId, successUrl, cancelUrl, requestHost) {
   // 1. Fetch live pricing configuration
-  const docSnap = await db.collection("settings").doc("global").get();
-  const prices = docSnap.exists 
-    ? docSnap.data() 
-    : { monthlyPrice: 4.99, yearlyPrice: 29.99, lifetimePrice: 79.99 };
+  let prices = { monthlyPrice: 4.99, yearlyPrice: 29.99, lifetimePrice: 79.99 };
+  try {
+    const docSnap = await db.collection("settings").doc("global").get();
+    if (docSnap.exists) {
+      prices = docSnap.data();
+    }
+  } catch (err) {
+    console.warn("Using default pricing rules (Firestore read fallback):", err.message);
+  }
 
   let priceValue = 4.99;
   let isSubscription = true;
@@ -34,22 +45,31 @@ async function createCheckoutSession(uid, planId, successUrl, cancelUrl, request
     isSubscription = false;
   }
 
-  // 2. Real Stripe Workflow
-  if (isStripeConfigured && stripe) {
+  const stripe = getStripe();
+
+  // 2. Real Stripe Workflow (Live or Test mode depending on STRIPE_SECRET_KEY)
+  if (isStripeConfigured() && stripe) {
     try {
-      // Build dynamic Stripe Price Object
-      const priceObject = await stripe.prices.create({
+      const lineItemPriceData = {
         currency: "usd",
         unit_amount: Math.round(priceValue * 100), // Stripe takes amounts in cents
-        recurring: isSubscription ? { interval: planId === "yearly" ? "year" : "month" } : undefined,
         product_data: {
           name: planId === "lifetime" ? "Lifetime Access" : `Premium ${planId === "yearly" ? "Yearly" : "Monthly"} Plan`,
         },
-      });
+      };
+
+      if (isSubscription) {
+        lineItemPriceData.recurring = { interval: planId === "yearly" ? "year" : "month" };
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
-        line_items: [{ price: priceObject.id, quantity: 1 }],
+        line_items: [
+          {
+            price_data: lineItemPriceData,
+            quantity: 1,
+          },
+        ],
         mode: isSubscription ? "subscription" : "payment",
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
@@ -63,7 +83,8 @@ async function createCheckoutSession(uid, planId, successUrl, cancelUrl, request
         checkoutUrl: session.url
       };
     } catch (error) {
-      console.error("Stripe Checkout Session generation failed, falling back to simulator:", error.message);
+      console.error("Stripe Checkout Session generation error:", error.message);
+      throw new Error(`Stripe Live Checkout Error: ${error.message}`);
     }
   }
 
@@ -83,5 +104,6 @@ async function createCheckoutSession(uid, planId, successUrl, cancelUrl, request
 
 module.exports = {
   createCheckoutSession,
-  isStripeConfigured: () => isStripeConfigured
+  isStripeConfigured,
+  getStripe
 };
